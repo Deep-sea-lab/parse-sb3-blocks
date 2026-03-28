@@ -44,11 +44,11 @@ const inputMap = new Map([
     [11, BroadcastMenuInput],
 ]);
 
-const getInputtablesForBlock = (block, blocks, asScript) => {
+const getInputtablesForBlock = (block, blocks, asScript, isUnknownOpcode = false) => {
     const inputtables = {};
     const opcode = block.opcode;
-    const blockInfo = allBlocks[opcode];
-    if (blockInfo.defaultMessage.includes('{ICON}')) inputtables.ICON = opcodeToIcon[opcode];
+    const blockInfo = allBlocks[opcode] || { defaultMessage: opcode };
+    if (!isUnknownOpcode && blockInfo.defaultMessage.includes('{ICON}')) inputtables.ICON = opcodeToIcon[opcode];
     Object.keys(block.fields).forEach(key => {
         // item 1 is variable ID, which we do not need.
         inputtables[key] = new Menu(null, opcode, block.fields[key][0]);
@@ -142,22 +142,20 @@ const parseInsertedBlock = (blockId, blocks) => {
         return new Variable(blockId, block.fields.VALUE[0], 'custom', BOOLEAN_BLOCK);
     }
     const blockInfo = allBlocks[opcode];
-    if (!blockInfo) {
-        // If you reached this line: please add entry to all-blocks.js.
-        throw new Error(
-            `Unknown block info for opcode ${opcode}. This is probably a bug and you should report this!`
-        );
+    const isUnknownOpcode = !blockInfo;
+    // For unknown opcodes, create a default block using the opcode as name
+    let blockConstructor = ReporterBlock; // Default to reporter for inserted blocks
+    if (!isUnknownOpcode) {
+        switch (blockInfo.type) {
+            case BOOLEAN_BLOCK:
+                blockConstructor = BooleanBlock;
+                break;
+            case REPORTER_BLOCK:
+                blockConstructor = ReporterBlock;
+                break;
+        }
     }
-    let blockConstructor = Block;
-    switch (blockInfo.type) {
-        case BOOLEAN_BLOCK:
-            blockConstructor = BooleanBlock;
-            break;
-        case REPORTER_BLOCK:
-            blockConstructor = ReporterBlock;
-            break;
-    }
-    return new blockConstructor(blockId, opcode, getInputtablesForBlock(block, blocks));
+    return new blockConstructor(blockId, opcode, getInputtablesForBlock(block, blocks, false, isUnknownOpcode));
 };
 
 const getDefinition = (block, blocks) => {
@@ -237,11 +235,8 @@ const parseScript = (scriptStart, blocks) => {
         let parsedBlock;
         const opcode = block.opcode;
         const blockInfo = allBlocks[opcode];
-        if (!blockInfo) {
-            console.warn('Unknown opcode: ', opcode);
-            blockId = block.next;
-            continue;
-        }
+        const isUnknownOpcode = !blockInfo;
+        
         if (opcode === 'procedures_definition') {
             parsedBlock = getDefinition(block, blocks);
         } else if (opcode === 'procedures_call') {
@@ -251,27 +246,27 @@ const parseScript = (scriptStart, blocks) => {
                 getProcCallArgs(block, blocks)
             );
         } else {
-            const blockType = blockInfo.type || BLOCK;
+            const blockType = blockInfo?.type || BLOCK;
             switch (blockType) {
                 case BLOCK:
                     parsedBlock = new Block(
                         block.id,
                         opcode,
-                        getInputtablesForBlock(block, blocks)
+                        getInputtablesForBlock(block, blocks, false, isUnknownOpcode)
                     );
                     break;
                 case C_BLOCK:
                     parsedBlock = new CBlock(
                         block.id,
                         opcode,
-                        getInputtablesForBlock(block, blocks, true)
+                        getInputtablesForBlock(block, blocks, true, isUnknownOpcode)
                     );
                     break;
                 case E_BLOCK:
                     parsedBlock = new EBlock(
                         block.id,
                         opcode,
-                        getInputtablesForBlock(block, blocks, true)
+                        getInputtablesForBlock(block, blocks, true, isUnknownOpcode)
                     );
                     break;
             }

@@ -27,15 +27,25 @@ const getTranslationKeyFromValue = (locale, value) => {
 };
 
 const getMessageForLocale = (locale, opcode) => {
-    const translationKey = allBlocks[opcode].translationKey || opcode.toUpperCase();
+    const blockInfo = allBlocks[opcode];
+    if (!blockInfo) {
+        // Unknown opcode: return the opcode itself as the message
+        return Sanitizer.labelSanitize(opcode);
+    }
+    const translationKey = blockInfo.translationKey || opcode.toUpperCase();
     if (translations[locale] && translations[locale][translationKey]) {
         return Sanitizer.labelSanitize(translations[locale][translationKey]);
     }
-    return Sanitizer.labelSanitize(allBlocks[opcode].defaultMessage);
+    return Sanitizer.labelSanitize(blockInfo.defaultMessage);
 };
 
 const getOptsForLocale = (locale, opcode) => {
-    const translationKey = allBlocks[opcode].translationKey || opcode.toUpperCase();
+    const blockInfo = allBlocks[opcode];
+    if (!blockInfo) {
+        // Unknown opcode: return empty options
+        return {};
+    }
+    const translationKey = blockInfo.translationKey || opcode.toUpperCase();
     if (translations[locale] && translations[locale][translationKey]) {
         if (localeOptions[locale] && localeOptions[locale][translationKey]) {
             return {
@@ -44,7 +54,7 @@ const getOptsForLocale = (locale, opcode) => {
         }
         return {};
     }
-    return allBlocks[opcode].defaultOptions || {};
+    return blockInfo.defaultOptions || {};
 };
 
 const getSpecialMessage = (locale, key) => {

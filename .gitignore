@@ -4,3 +4,4 @@
 test-*.js
 build.temp.js
 /.nyc_output
+/test-app
