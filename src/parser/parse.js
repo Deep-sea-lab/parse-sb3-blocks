@@ -84,15 +84,22 @@ const getInputtablesForBlock = (block, blocks, asScript, isUnknownOpcode = false
                     ? blockInfo.remap[key]
                     : key;
                 if (!Object.prototype.hasOwnProperty.call(menu.fields, fieldKey)) {
-                    // Note to whoever is reading this:
-                    // go to all-blocks.js and add "remap" object, from key to field key
-                    throw new Error(
-                        `Non-existent key ${fieldKey}/${key} for menu opcode ${opcode}, known: ${Object.keys(
-                            menu.fields
-                        )}. This is probably a bug and you should report this!`
-                    );
+                    if (isUnknownOpcode) {
+                        // For unknown opcodes, use the first available field as fallback
+                        const firstFieldKey = Object.keys(menu.fields)[0];
+                        inputtables[key] = new Menu(menuBlockId, opcode, menu.fields[firstFieldKey][0]);
+                    } else {
+                        // Note to whoever is reading this:
+                        // go to all-blocks.js and add "remap" object, from key to field key
+                        throw new Error(
+                            `Non-existent key ${fieldKey}/${key} for menu opcode ${opcode}, known: ${Object.keys(
+                                menu.fields
+                            )}. This is probably a bug and you should report this!`
+                        );
+                    }
+                } else {
+                    inputtables[key] = new Menu(menuBlockId, opcode, menu.fields[fieldKey][0]);
                 }
-                inputtables[key] = new Menu(menuBlockId, opcode, menu.fields[fieldKey][0]);
             }
         } else {
             // value[1] is probably array

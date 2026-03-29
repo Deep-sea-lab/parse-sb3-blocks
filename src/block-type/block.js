@@ -8,7 +8,7 @@ export default class Block {
     }
 
     blockSyntax(locale, opts) {
-        const syntax = getMessageForLocale(locale, this.opcode);
+        const syntax = getMessageForLocale(locale, this.opcode, this.inputtables);
         if (this.opcode === 'control_stop') {
             return `${syntax} ${this.inputtables.STOP_OPTION.toScratchblocks(locale, opts)}`;
         }

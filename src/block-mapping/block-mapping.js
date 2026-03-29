@@ -26,10 +26,16 @@ const getTranslationKeyFromValue = (locale, value) => {
     return candidates.length ? candidates[0] : null;
 };
 
-const getMessageForLocale = (locale, opcode) => {
+const getMessageForLocale = (locale, opcode, inputtables) => {
     const blockInfo = allBlocks[opcode];
     if (!blockInfo) {
-        // Unknown opcode: return the opcode itself as the message
+        // Unknown opcode: build a template from inputtables if available
+        if (inputtables && Object.keys(inputtables).length > 0) {
+            const keys = Object.keys(inputtables);
+            const parts = keys.map(key => `{${key}}`);
+            return Sanitizer.labelSanitize(opcode + ' ' + parts.join(' '));
+        }
+        // Unknown opcode with no inputs: return the opcode itself as the message
         return Sanitizer.labelSanitize(opcode);
     }
     const translationKey = blockInfo.translationKey || opcode.toUpperCase();
